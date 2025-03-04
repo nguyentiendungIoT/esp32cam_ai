@@ -31,7 +31,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-
+//#include "esp_spi_flash.h"
 /* Include ----------------------------------------------------------------- */
 #include "driver/gpio.h"
 #include "sdkconfig.h"
@@ -72,7 +72,7 @@ void setup_led() {
 
 extern "C" int app_main()
 {
-    setup_led();
+    //setup_led();
 
     /* Initialize Edge Impulse sensors and commands */
 
@@ -84,16 +84,29 @@ extern "C" int app_main()
         __DATE__,
         __TIME__);
 
-    /* Setup the inertial sensor */
-    if (ei_inertial_init() == false) {
-        ei_printf("Inertial sensor initialization failed\r\n");
+    //setup the camera
+    EiCamera *camera = EiCamera::get_camera();
+    esp_err_t isr_err = gpio_install_isr_service(0);
+    if (isr_err != ESP_OK && isr_err != ESP_ERR_INVALID_STATE) {
+        ei_printf("Cài đặt GPIO ISR service thất bại\n");
+        return -1;
     }
 
-    /* Setup the analog sensor */
+    if (!camera->init(96, 96)) {
+        ei_printf("Khoi tao camera that bai\n");
+        return -1;
+    }
+
+    /* Setup the inertial sensor
+    if (ei_inertial_init() == false) {
+        ei_printf("Inertial sensor initialization failed\r\n");
+    }*/
+
+    /* Setup the analog sensor
     if (ei_analog_sensor_init() == false) {
         ei_printf("ADC sensor initialization failed\r\n");
     }
-
+*/
     at = ei_at_init(dev);
     ei_printf("Type AT+HELP to see a list of commands.\r\n");
     at->print_prompt();

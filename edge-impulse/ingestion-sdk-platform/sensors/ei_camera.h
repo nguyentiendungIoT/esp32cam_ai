@@ -38,7 +38,7 @@
 /* Include ----------------------------------------------------------------- */
 #include "firmware-sdk/ei_camera_interface.h"
 
-#define CAMERA_MODEL_ESP_EYE
+#define CAMERA_MODEL_AI_THINKER
 
 /*
  *   Pin definitions for some common ESP-CAM modules

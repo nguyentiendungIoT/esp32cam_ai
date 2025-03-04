@@ -273,14 +273,14 @@ void EiDeviceESP32::set_default_data_output_baudrate(void)
 {
     fflush(stdout);
     ei_sleep(10);
-    esp_err_t ret = uart_set_baudrate(0, DEFAULT_BAUD);
+    esp_err_t ret = uart_set_baudrate(UART_NUM_0, DEFAULT_BAUD);
 }
 
 void EiDeviceESP32::set_max_data_output_baudrate(void)
 {
     fflush(stdout);
     ei_sleep(10);
-    esp_err_t ret = uart_set_baudrate(0, MAX_BAUD);
+    esp_err_t ret = uart_set_baudrate(UART_NUM_0, MAX_BAUD);
 }
 
 /**
