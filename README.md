@@ -1,4 +1,5 @@
-<<<<<<< HEAD
+ HEAD
+ HEAD
 # Edge Impulse firmware for Espressif ESP32
 
 Edge Impulse enables developers to create the next generation of intelligent device solutions with embedded Machine Learning. This repository contains the Edge Impulse firmware for the Espressif ESP32 based development boards, specifically ESP-EYE (ESP32) and FireBeetle Board (ESP32). These devicee supports Edge Impulse device features, including ingestion and inferencing.
@@ -50,7 +51,11 @@ The pins used for camera connection on different development boards are not the 
 The analog sensor and LIS3DH accelerometer can be used on any other development board without changes, as long as the interface pins are not changed. If I2C/ADC pins that accelerometer/analog sensor are connected to are different, from described in Sensors available section, you will need to [change the values](https://github.com/AIWintermuteAI/LIS3DHTR_ESP-IDF/blob/641bda8c3e4b706a2365fe87dd4d925f96ea3f8c/src/include/LIS3DHTR.h#L31) in LIS3DHTR component for ESP32, compile and flash it to your board.
 
 Additionally, since Edge Impulse firmware is open-source and available to public, if you have made modifications/added new sensors capabilities, we encourage you to make a PR in firmware repository!
-=======
+
 # esp32cam_ai
 project esp32cam , include modle Ai classification vietnam money .Now, Project is fasle 
->>>>>>> f9b929f987de878eedb359a71f9d14892944516b
+ f9b929f987de878eedb359a71f9d14892944516b
+
+# esp32cam_ai
+project esp32cam , include modle Ai classification vietnam money .Now, Project is fasle 
+f9b929f987de878eedb359a71f9d14892944516b
