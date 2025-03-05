@@ -36,7 +36,7 @@
 #include "driver/gpio.h"
 #include "sdkconfig.h"
 #include "esp_idf_version.h"
-
+#include <string.h>
 #include <stdio.h>
 
 #include "ei_device_espressif_esp32.h"
@@ -47,79 +47,107 @@
 
 #include "ei_analogsensor.h"
 #include "ei_inertial_sensor.h"
+#include "ei_camera.h"
 
-#define RED_LED_PIN GPIO_NUM_21
-#define WHITE_LED_PIN GPIO_NUM_22
+#include "esp_camera.h"
+#include "esp_log.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+
+
+#include "ei_run_classifier.h"
+
+
+
+
+/// Kích thước mô hình
+#define MODEL_INPUT_WIDTH   96
+#define MODEL_INPUT_HEIGHT  96
+#define MODEL_INPUT_CH      3
+
+
+
 
 EiDeviceInfo *EiDevInfo = dynamic_cast<EiDeviceInfo *>(EiDeviceESP32::get_device());
 static ATServer *at;
 
-/* Private variables ------------------------------------------------------- */
 
-/* Public functions -------------------------------------------------------- */
 
-void setup_led() {
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-    esp_rom_gpio_pad_select_gpio(RED_LED_PIN);
-    esp_rom_gpio_pad_select_gpio(WHITE_LED_PIN);
-#elif ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
-    gpio_pad_select_gpio(RED_LED_PIN);
-    gpio_pad_select_gpio(WHITE_LED_PIN);
-#endif
-    gpio_set_direction(RED_LED_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_direction(WHITE_LED_PIN, GPIO_MODE_OUTPUT);
+
+
+// Mảng float chứa ảnh chuẩn hóa (0..1)
+static float input_buf[MODEL_INPUT_WIDTH * MODEL_INPUT_HEIGHT * MODEL_INPUT_CH] = {0};
+
+// Hàm callback cho Edge Impulse
+int get_data(size_t offset, size_t length, float *out_ptr) {
+    memcpy(out_ptr, input_buf + offset, length * sizeof(float));
+    return 0;
 }
 
-extern "C" int app_main()
+extern "C" void app_main()
 {
-    //setup_led();
+	// 1. Lấy đối tượng camera
+	    EiCamera *camera = EiCamera::get_camera();
 
-    /* Initialize Edge Impulse sensors and commands */
+	    // 2. Khởi tạo camera ở độ phân giải 96x96
+	    // (sẽ gọi nội bộ set_resolution, esp_camera_init v.v.)
+	    if (!camera->init(MODEL_INPUT_WIDTH, MODEL_INPUT_HEIGHT)) {
+	        ei_printf("Camera init thất bại!\n");
+	        return;
+	    }
 
-    EiDeviceESP32* dev = static_cast<EiDeviceESP32*>(EiDeviceESP32::get_device());
+	    ei_printf("Camera đã init xong, bắt đầu vòng lặp chụp + suy luận.\n");
 
-    ei_printf(
-        "Hello from Edge Impulse Device SDK.\r\n"
-        "Compiled on %s %s\r\n",
-        __DATE__,
-        __TIME__);
+	    while (true) {
+	        // 3. Cấp phát (tĩnh) bộ đệm RGB888 cho ảnh 96x96
+	        static uint8_t rgb888_buf[MODEL_INPUT_WIDTH * MODEL_INPUT_HEIGHT * MODEL_INPUT_CH];
 
-    //setup the camera
-    EiCamera *camera = EiCamera::get_camera();
-    esp_err_t isr_err = gpio_install_isr_service(0);
-    if (isr_err != ESP_OK && isr_err != ESP_ERR_INVALID_STATE) {
-        ei_printf("Cài đặt GPIO ISR service thất bại\n");
-        return -1;
-    }
+	        // 4. Chụp ảnh RGB888
+	        bool status = camera->ei_camera_capture_rgb888_packed_big_endian(
+	            rgb888_buf,
+	            sizeof(rgb888_buf));
+	        if (!status) {
+	            ei_printf("Chụp ảnh thất bại.\n");
+	            vTaskDelay(pdMS_TO_TICKS(1000));
+	            continue;
+	        }
 
-    if (!camera->init(96, 96)) {
-        ei_printf("Khoi tao camera that bai\n");
-        return -1;
-    }
+	        // 5. Chuẩn hóa ảnh (0..255) -> (0..1)
+	        size_t pixel_count = MODEL_INPUT_WIDTH * MODEL_INPUT_HEIGHT * MODEL_INPUT_CH;
+	        for (size_t i = 0; i < pixel_count; i++) {
+	            input_buf[i] = rgb888_buf[i] / 255.0f;
+	        }
 
-    /* Setup the inertial sensor
-    if (ei_inertial_init() == false) {
-        ei_printf("Inertial sensor initialization failed\r\n");
-    }*/
+	        // 6. Tạo signal cho Edge Impulse
+	        signal_t signal;
+	        signal.total_length = pixel_count;
+	        signal.get_data = &get_data;
 
-    /* Setup the analog sensor
-    if (ei_analog_sensor_init() == false) {
-        ei_printf("ADC sensor initialization failed\r\n");
-    }
-*/
-    at = ei_at_init(dev);
-    ei_printf("Type AT+HELP to see a list of commands.\r\n");
-    at->print_prompt();
+	        // 7. Gọi run_classifier
+	        ei_impulse_result_t result = {0};
+	        EI_IMPULSE_ERROR ei_status = run_classifier(&signal, &result, false);
+	        if (ei_status != EI_IMPULSE_OK) {
+	            ei_printf("run_classifier thất bại (%d)\n", ei_status);
+	        }
+	        else {
+	            // In kết quả
+	            ei_printf("Kết quả phân loại:\n");
+	            for (int ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+	                const char *label = result.classification[ix].label;
+	                if(label == NULL) {
+	                    label = "(null)";
+	                }
+	                ei_printf("  %s: %.5f\n", label, result.classification[ix].value);
+	            }
 
-    dev->set_state(eiStateFinished);
+	#if EI_CLASSIFIER_HAS_ANOMALY == 1
+	            ei_printf("  Anomaly: %.3f\n", result.anomaly);
+	#endif
+	        }
 
-    while(1){
-        /* handle command comming from uart */
-        char data = ei_get_serial_byte();
-
-        while (data != 0xFF) {
-            at->handle(data);
-            data = ei_get_serial_byte();
-        }
-    }
+	        // Nghỉ 1 giây
+	        vTaskDelay(pdMS_TO_TICKS(5000));
+	    }
 }
