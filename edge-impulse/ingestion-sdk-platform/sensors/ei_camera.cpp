@@ -87,7 +87,8 @@ static camera_config_t camera_config = {
 ei_device_snapshot_resolutions_t EiCameraESP32::resolutions[] = {
         { .width = 160, .height = 120 },
         { .width = 320, .height = 240 },
-        { .width = 480, .height = 320 }
+        { .width = 480, .height = 320 },
+		{ .width = 640, .height = 480 }
     };
 
 EiCameraESP32::EiCameraESP32()
@@ -126,15 +127,19 @@ bool EiCameraESP32::set_resolution(const ei_device_snapshot_resolutions_t res) {
     break;
 
     case 160:
-    frame_size = FRAMESIZE_QVGA;
+    frame_size = FRAMESIZE_QVGA;//320-240
     break;
 
     case 240:
-    frame_size = FRAMESIZE_QVGA;
+    frame_size = FRAMESIZE_QVGA;//320-240
     break;
 
     case 320:
     frame_size = FRAMESIZE_HVGA;
+    break;
+
+    case 480:  // Nếu chiều cao là 600 (với width=800)
+    frame_size = FRAMESIZE_VGA; // FRAMESIZE_SVGA thường tương ứng với 800x600
     break;
 
     default:

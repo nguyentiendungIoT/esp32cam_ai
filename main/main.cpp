@@ -32,37 +32,47 @@
 #define MODEL_INPUT_HEIGHT  EI_CLASSIFIER_INPUT_HEIGHT  // 96
 #define MODEL_INPUT_CH      3
 
-// Độ phân giải camera: ESP32-CAM chỉ có thể chụp 169×120
-#define CAMERA_WIDTH   160
-#define CAMERA_HEIGHT  120
+// Độ phân giải camera: ở đây mặc định là 640×480 (bạn có thể sử dụng độ phân giải cao hơn nếu driver hỗ trợ)
+#define CAMERA_WIDTH   640
+#define CAMERA_HEIGHT  480
 
 // Cấp phát tensor arena theo kích thước khuyến nghị (căn chỉnh 16-byte)
 EXT_RAM_ATTR uint8_t tensor_arena[EI_CLASSIFIER_TFLITE_LARGEST_ARENA_SIZE] __attribute__((aligned(16))) = {0};
 
 // Buffer chứa ảnh chuẩn hóa (int8) – dùng làm input cho mô hình
-// Sau chuyển đổi, giá trị pixel sẽ nằm trong khoảng -128 đến 127
+// Giá trị pixel sau chuyển đổi sẽ nằm trong khoảng -128 đến 127
 EXT_RAM_BSS_ATTR static int8_t input_buf[MODEL_INPUT_WIDTH * MODEL_INPUT_HEIGHT * MODEL_INPUT_CH] = {0};
 
-// Buffer chứa ảnh RGB888 được chụp từ camera (169×120×3 bytes)
+// Buffer chứa ảnh RGB888 được chụp từ camera (640×480×3 bytes)
 static uint8_t *rgb888_buf = NULL;
 // Buffer chứa ảnh đã resize về kích thước mô hình (96×96×3 bytes)
 static uint8_t *resized_buf = NULL;
 
-// Hàm callback: cung cấp dữ liệu từ input_buf cho mô hình Edge Impulse (kiểu int8)
+// Hàm callback: cung cấp dữ liệu từ input_buf cho mô hình (kiểu int8)
 int get_data(size_t offset, size_t length, int8_t *out_ptr) {
     memcpy(out_ptr, input_buf + offset, length * sizeof(int8_t));
     return 0;
 }
 
-// Hàm chuyển đổi ảnh từ uint8_t (0–255) sang int8_t (0–255 chuyển sang -128..127)
-void convert_image_to_int8(const uint8_t *src, int8_t *dst, size_t length) {
+/* Hàm chuyển đổi ảnh từ uint8_t sang int8_t theo quy tắc quantization.
+   Công thức: quantized = round((src/255.0) / scale) + zero_point,
+   sau đó clamp giá trị về khoảng [-128, 127].
+   Giá trị scale và zero_point được "hardcode" ở đây, bạn nên thay đổi theo mô hình của bạn.
+*/
+void convert_image_to_int8_with_quant(const uint8_t *src, int8_t *dst, size_t length) {
+    // Ví dụ: sử dụng scale và zero point theo quá trình huấn luyện
+    float scale = 0.0039215688593685627f;  // Thay đổi nếu giá trị của bạn khác
+    int zero_point = -128;                  // Thay đổi nếu giá trị của bạn khác
     for (size_t i = 0; i < length; i++) {
-        dst[i] = (int8_t)((int)src[i] - 128);
+        int quantized = (int)roundf(((float)src[i] / 255.0f) / scale) + zero_point;
+        if (quantized < -128) quantized = -128;
+        if (quantized > 127) quantized = 127;
+        dst[i] = (int8_t)quantized;
     }
 }
 
 extern "C" void app_main() {
-    // Cấp phát bộ nhớ cho buffer ảnh RGB888 (kích thước: 169×120×3) và buffer ảnh đã resize (96×96×3)
+    // Cấp phát bộ nhớ cho buffer ảnh RGB888 (CAMERA_WIDTH×CAMERA_HEIGHT×3) và buffer ảnh đã resize (MODEL_INPUT_WIDTH×MODEL_INPUT_HEIGHT×3)
     if (heap_caps_get_total_size(MALLOC_CAP_SPIRAM) > 0) {
         ei_printf("PSRAM detected! Sử dụng PSRAM để lưu ảnh.\n");
         rgb888_buf = (uint8_t *)heap_caps_malloc(CAMERA_WIDTH * CAMERA_HEIGHT * 3, MALLOC_CAP_SPIRAM);
@@ -77,7 +87,7 @@ extern "C" void app_main() {
         return;
     }
 
-    // Khởi tạo camera với độ phân giải 169×120
+    // Khởi tạo camera với độ phân giải CAMERA_WIDTH×CAMERA_HEIGHT
     EiCamera *camera = EiCamera::get_camera();
     if (!camera->init(CAMERA_WIDTH, CAMERA_HEIGHT)) {
         ei_printf("Camera init thất bại!\n");
@@ -86,7 +96,7 @@ extern "C" void app_main() {
     ei_printf("Camera đã init xong, bắt đầu vòng lặp chụp + suy luận.\n");
 
     while (true) {
-        // Chụp ảnh RGB888 với độ phân giải 169×120
+        // Chụp ảnh RGB888 với độ phân giải CAMERA_WIDTH×CAMERA_HEIGHT
         bool capture_status = camera->ei_camera_capture_rgb888_packed_big_endian(
             rgb888_buf,
             CAMERA_WIDTH * CAMERA_HEIGHT * 3
@@ -105,7 +115,7 @@ extern "C" void app_main() {
         }
         ei_printf("\n");
 
-        // Resize ảnh từ 169×120 xuống 96×96 sử dụng hàm resize_image của Edge Impulse
+        // Resize ảnh từ CAMERA_WIDTH×CAMERA_HEIGHT xuống MODEL_INPUT_WIDTH×MODEL_INPUT_HEIGHT sử dụng hàm resize_image
         int resize_status = ei::image::processing::resize_image(
             rgb888_buf,
             CAMERA_WIDTH, CAMERA_HEIGHT,
@@ -121,9 +131,9 @@ extern "C" void app_main() {
         }
         ei_printf("Resize ảnh thành công về kích thước %dx%d.\n", MODEL_INPUT_WIDTH, MODEL_INPUT_HEIGHT);
 
-        // Chuyển đổi dữ liệu ảnh: từ uint8_t sang int8_t (0–255 -> -128..127)
+        // Chuyển đổi dữ liệu ảnh: từ uint8_t sang int8_t theo quy tắc quantization
         size_t pixel_count = MODEL_INPUT_WIDTH * MODEL_INPUT_HEIGHT * MODEL_INPUT_CH;
-        convert_image_to_int8(resized_buf, input_buf, pixel_count);
+        convert_image_to_int8_with_quant(resized_buf, input_buf, pixel_count);
 
         // In 5 giá trị đầu của ảnh đã chuyển đổi để kiểm tra
         ei_printf("Ảnh chuẩn hóa (5 giá trị đầu): ");
@@ -139,7 +149,7 @@ extern "C" void app_main() {
         signal.get_data = (int (*)(size_t, size_t, void*)) &get_data;
 
         // Gọi run_classifier để thực hiện suy luận
-        ei_impulse_result_t result = { 0 };
+        ei_impulse_result_t result = {0};
         EI_IMPULSE_ERROR ei_status = run_classifier(&signal, &result, false);
         if (ei_status != EI_IMPULSE_OK) {
             ei_printf("run_classifier() lỗi: %d\n", ei_status);
@@ -152,7 +162,7 @@ extern "C" void app_main() {
             }
         }
 
-        // Nghỉ 5 giây trước vòng lặp kế tiếp
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        // Nghỉ 1 giây trước vòng lặp kế tiếp
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
