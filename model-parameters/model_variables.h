@@ -95,7 +95,7 @@ ei_learning_block_config_tflite_graph_t ei_learning_block_config_6 = {
     .output_labels_tensor = 1,
     .output_score_tensor = 2,
     .threshold = 0,
-    .quantized = 0,
+    .quantized = 1,
     .compiled = 1,
     .graph_config = (void*)&ei_config_tflite_graph_6
 };
@@ -128,7 +128,7 @@ const ei_impulse_t impulse_639066_0 = {
     .project_name = "classification_money",
     .impulse_id = 1,
     .impulse_name = "Impulse #1",
-    .deploy_version = 3,
+    .deploy_version = 5,
 
     .nn_input_frame_size = 27648,
     .raw_sample_count = 9216,
