@@ -119,13 +119,13 @@ therefore changes are allowed. */
 __attribute__((unused)) void display_results(ei_impulse_handle_t *handle, ei_impulse_result_t* result)
 {
     // print the predictions
-    ei_printf("Predictions (DSP: ");
+   /* ei_printf("Predictions (DSP: ");
     result->timing.dsp_us ? ei_printf_float((float)result->timing.dsp_us/1000) : ei_printf("%d", result->timing.dsp);
     ei_printf(" ms., Classification: ");
     result->timing.classification_us ? ei_printf_float((float)result->timing.classification_us/1000) : ei_printf("%d", result->timing.classification);
     ei_printf(" ms., Anomaly: ");
     result->timing.anomaly_us ? ei_printf_float((float)result->timing.anomaly_us/1000) : ei_printf("%d", result->timing.anomaly);
-    ei_printf("ms.): \n");
+    ei_printf("ms.): \n");*/
 
 #if EI_CLASSIFIER_OBJECT_DETECTION == 1
     ei_printf("#Object detection results:\r\n");
@@ -151,12 +151,21 @@ __attribute__((unused)) void display_results(ei_impulse_handle_t *handle, ei_imp
     ei_printf("\n");
 
 #elif EI_CLASSIFIER_LABEL_COUNT > 1 // if there is only one label, this is an anomaly only
-    ei_printf("#Classification results:\r\n");
-    for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
-        ei_printf("    %s: ", result->classification[ix].label);
-        ei_printf_float(result->classification[ix].value);
-        ei_printf("\n");
-    }
+    // Tìm nhãn có giá trị (score) cao nhất
+        float max_value = -1.0f;
+        int max_index = -1;
+        for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+            if (result->classification[ix].value > max_value) {
+                max_value = result->classification[ix].value;
+                max_index = ix;
+            }
+        }
+        if (max_index >= 0) {
+            //ei_printf("#Best Classification result:\r\n");
+            ei_printf("    %s: ", result->classification[max_index].label);
+            ei_printf_float(result->classification[max_index].value);
+            ei_printf("\n");
+        }
 #endif
 #if EI_CLASSIFIER_HAS_ANOMALY == 3 // visual AD
     ei_printf("#Visual anomaly grid results:\r\n");

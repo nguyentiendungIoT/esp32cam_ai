@@ -138,7 +138,7 @@ bool EiCameraESP32::set_resolution(const ei_device_snapshot_resolutions_t res) {
     frame_size = FRAMESIZE_HVGA;
     break;
 
-    case 480:  // Nếu chiều cao là 600 (với width=800)
+    case 480:  // Nếu chiều cao là 480 (với width=640)
     frame_size = FRAMESIZE_VGA; // FRAMESIZE_SVGA thường tương ứng với 800x600
     break;
 
