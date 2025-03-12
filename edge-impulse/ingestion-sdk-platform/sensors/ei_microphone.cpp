@@ -42,8 +42,7 @@
 
 #include "driver/i2s.h"
 #include "esp_log.h"
-#include "spi_flash_mmap.h"
-
+#include "esp_spi_flash.h"
 #include "esp_system.h"
 #include "esp_timer.h"
 

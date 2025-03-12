@@ -280,7 +280,7 @@ esp_err_t esp_camera_init(const camera_config_t *config)
 
     camera_model_t camera_model = CAMERA_NONE;
     err = camera_probe(config, &camera_model);
-    if (err != ESP_OK&& err != ESP_ERR_INVALID_STATE) {
+    if (err != ESP_OK) {
         ESP_LOGE(TAG, "Camera probe failed with error 0x%x(%s)", err, esp_err_to_name(err));
         goto fail;
     }
