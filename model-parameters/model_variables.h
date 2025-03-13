@@ -60,14 +60,14 @@ ei_dsp_config_image_t ei_dsp_config_2887 = {
     1, // int length of axes
     ei_dsp_config_2887_named_axes, // named axes
     ei_dsp_config_2887_named_axes_size, // size of the named axes array
-    "Grayscale" // select channels
+    "RGB" // select channels
 };
 
 const uint8_t ei_dsp_blocks_size = 1;
 ei_model_dsp_t ei_dsp_blocks[ei_dsp_blocks_size] = {
     { // DSP block 2887
         2887,
-        9216, // output size
+        27648, // output size
         &extract_image_features, // DSP function pointer
         (void*)&ei_dsp_config_2887, // pointer to config struct
         ei_dsp_config_2887_axes, // array of offsets into the input stream, one for each axis
@@ -128,9 +128,9 @@ const ei_impulse_t impulse_634692_0 = {
     .project_name = "nam tram",
     .impulse_id = 1,
     .impulse_name = "Impulse #1",
-    .deploy_version = 21,
+    .deploy_version = 24,
 
-    .nn_input_frame_size = 9216,
+    .nn_input_frame_size = 27648,
     .raw_sample_count = 9216,
     .raw_samples_per_frame = 1,
     .dsp_input_frame_size = 9216 * 1,

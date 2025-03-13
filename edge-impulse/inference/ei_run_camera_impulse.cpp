@@ -121,10 +121,13 @@ void ei_run_impulse(void)
 
     ei_printf("Taking photo...\n");
 
+
     if(camera->ei_camera_capture_jpeg(&jpeg_image, &jpeg_image_size) == false) {
         ei_printf("ERR: Failed to take a snapshot!\n");
         return;
     }
+
+
 
     snapshot_buf = (uint8_t*)ei_malloc(snapshot_buf_size);
 
