@@ -166,7 +166,7 @@ void ei_run_impulse(void)
     signal.get_data = &ei_camera_get_data;
 
     // print and discard JPEG buffer before inference to free some memory
-    if (debug_mode) {
+   /* if (debug_mode) {
         ei_printf("Begin output\n");
         ei_printf("Framebuffer: ");
         // base64_encode((const char*)jpeg_image, jpeg_image_size, &ei_putchar);
@@ -175,7 +175,7 @@ void ei_run_impulse(void)
         if(ret != 0) {
             ei_printf("ERR: Failed to encode frame as JPEG (%d)\n", ret);
         }
-    }
+    }*/
 
     // run the impulse: DSP, neural network and the Anomaly algorithm
     ei_impulse_result_t result = { 0 };
@@ -254,7 +254,7 @@ void ei_start_impulse(bool continuous, bool debug, bool use_max_uart_speed)
 
     while(!ei_user_invoke_stop()) {
         ei_run_impulse();
-        ei_sleep(5000);
+        ei_sleep(10);
     }
 
     ei_stop_impulse();

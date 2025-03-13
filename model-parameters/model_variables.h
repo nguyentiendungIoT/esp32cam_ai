@@ -42,77 +42,77 @@
 #include <stdint.h>
 #include "model_metadata.h"
 
-#include "tflite-model/tflite_learn_2886_compiled.h"
+#include "tflite-model/tflite_learn_2888_compiled.h"
 #include "edge-impulse-sdk/classifier/ei_model_types.h"
 #include "edge-impulse-sdk/classifier/inferencing_engines/engines.h"
 
-const char* ei_classifier_inferencing_categories[] = { "nam muoi", "tram nghin" };
+const char* ei_classifier_inferencing_categories[] = { "nam", "tram" };
 
-ei_dsp_named_axis_t ei_dsp_config_2885_named_axes[] = {
+ei_dsp_named_axis_t ei_dsp_config_2887_named_axes[] = {
     { .name = "Image", .axis = 0 }
 };
-size_t ei_dsp_config_2885_named_axes_size = 1;
-EI_CLASSIFIER_DSP_AXES_INDEX_TYPE ei_dsp_config_2885_axes[] = { 0 };
-const uint32_t ei_dsp_config_2885_axes_size = 1;
-ei_dsp_config_image_t ei_dsp_config_2885 = {
-    2885, // uint32_t blockId
+size_t ei_dsp_config_2887_named_axes_size = 1;
+EI_CLASSIFIER_DSP_AXES_INDEX_TYPE ei_dsp_config_2887_axes[] = { 0 };
+const uint32_t ei_dsp_config_2887_axes_size = 1;
+ei_dsp_config_image_t ei_dsp_config_2887 = {
+    2887, // uint32_t blockId
     1, // int implementationVersion
     1, // int length of axes
-    ei_dsp_config_2885_named_axes, // named axes
-    ei_dsp_config_2885_named_axes_size, // size of the named axes array
+    ei_dsp_config_2887_named_axes, // named axes
+    ei_dsp_config_2887_named_axes_size, // size of the named axes array
     "Grayscale" // select channels
 };
 
 const uint8_t ei_dsp_blocks_size = 1;
 ei_model_dsp_t ei_dsp_blocks[ei_dsp_blocks_size] = {
-    { // DSP block 2885
-        2885,
+    { // DSP block 2887
+        2887,
         9216, // output size
         &extract_image_features, // DSP function pointer
-        (void*)&ei_dsp_config_2885, // pointer to config struct
-        ei_dsp_config_2885_axes, // array of offsets into the input stream, one for each axis
-        ei_dsp_config_2885_axes_size, // number of axes
+        (void*)&ei_dsp_config_2887, // pointer to config struct
+        ei_dsp_config_2887_axes, // array of offsets into the input stream, one for each axis
+        ei_dsp_config_2887_axes_size, // number of axes
         1, // version
         nullptr, // factory function
     }
 };
-const ei_config_tflite_eon_graph_t ei_config_tflite_graph_2886 = {
+const ei_config_tflite_eon_graph_t ei_config_tflite_graph_2888 = {
     .implementation_version = 1,
-    .model_init = &tflite_learn_2886_init,
-    .model_invoke = &tflite_learn_2886_invoke,
-    .model_reset = &tflite_learn_2886_reset,
-    .model_input = &tflite_learn_2886_input,
-    .model_output = &tflite_learn_2886_output,
+    .model_init = &tflite_learn_2888_init,
+    .model_invoke = &tflite_learn_2888_invoke,
+    .model_reset = &tflite_learn_2888_reset,
+    .model_input = &tflite_learn_2888_input,
+    .model_output = &tflite_learn_2888_output,
 };
 
-ei_learning_block_config_tflite_graph_t ei_learning_block_config_2886 = {
+ei_learning_block_config_tflite_graph_t ei_learning_block_config_2888 = {
     .implementation_version = 1,
-    .classification_mode = EI_CLASSIFIER_CLASSIFICATION_MODE_CLASSIFICATION,
-    .block_id = 2886,
-    .object_detection = 0,
-    .object_detection_last_layer = EI_CLASSIFIER_LAST_LAYER_UNKNOWN,
+    .classification_mode = EI_CLASSIFIER_CLASSIFICATION_MODE_OBJECT_DETECTION,
+    .block_id = 2888,
+    .object_detection = 1,
+    .object_detection_last_layer = EI_CLASSIFIER_LAST_LAYER_FOMO,
     .output_data_tensor = 0,
     .output_labels_tensor = 1,
     .output_score_tensor = 2,
-    .threshold = 0,
+    .threshold = 0.5,
     .quantized = 1,
     .compiled = 1,
-    .graph_config = (void*)&ei_config_tflite_graph_2886
+    .graph_config = (void*)&ei_config_tflite_graph_2888
 };
 
 const uint8_t ei_learning_blocks_size = 1;
-const uint32_t ei_learning_block_2886_inputs[1] = { 2885 };
-const uint8_t ei_learning_block_2886_inputs_size = 1;
+const uint32_t ei_learning_block_2888_inputs[1] = { 2887 };
+const uint8_t ei_learning_block_2888_inputs_size = 1;
 const ei_learning_block_t ei_learning_blocks[ei_learning_blocks_size] = {
     {
-        2886,
+        2888,
         false,
         &run_nn_inference,
-        (void*)&ei_learning_block_config_2886,
+        (void*)&ei_learning_block_config_2888,
         EI_CLASSIFIER_IMAGE_SCALING_NONE,
-        ei_learning_block_2886_inputs,
-        ei_learning_block_2886_inputs_size,
-        2
+        ei_learning_block_2888_inputs,
+        ei_learning_block_2888_inputs_size,
+        432
     },
 };
 
@@ -128,7 +128,7 @@ const ei_impulse_t impulse_634692_0 = {
     .project_name = "nam tram",
     .impulse_id = 1,
     .impulse_name = "Impulse #1",
-    .deploy_version = 15,
+    .deploy_version = 21,
 
     .nn_input_frame_size = 9216,
     .raw_sample_count = 9216,
@@ -142,14 +142,14 @@ const ei_impulse_t impulse_634692_0 = {
     .dsp_blocks_size = ei_dsp_blocks_size,
     .dsp_blocks = ei_dsp_blocks,
     
-    .object_detection_count = 0,
-    .fomo_output_size = 0,
-
+    .object_detection_count = 10,
+    .fomo_output_size = 12,
+    
     
     .visual_ad_grid_size_x = int((96 / 8) / 2 - 1),
     .visual_ad_grid_size_y = int((96 / 8) / 2 - 1),
     
-    .tflite_output_features_count = 2,
+    .tflite_output_features_count = 432,
     .learning_blocks_size = ei_learning_blocks_size,
     .learning_blocks = ei_learning_blocks,
 
